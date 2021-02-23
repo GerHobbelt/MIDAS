@@ -22,20 +22,20 @@
 
 namespace MIDAS {
 struct RelationalCore {
-	unsigned long timestamp = 1;
-	const double factor;
-	unsigned long* const indexEdge; // Pre-compute the index to-be-modified, thanks to the same structure of CMSs
-	unsigned long* const indexSource;
-	unsigned long* const indexDestination;
+	int timestamp = 1;
+	const float factor;
+	int* const indexEdge; // Pre-compute the index to-be-modified, thanks to the same structure of CMSs
+	int* const indexSource;
+	int* const indexDestination;
 	CountMinSketch numCurrentEdge, numTotalEdge;
 	CountMinSketch numCurrentSource, numTotalSource;
 	CountMinSketch numCurrentDestination, numTotalDestination;
 
-	RelationalCore(unsigned long numRow, unsigned long numColumn, double factor = 0.5):
+	RelationalCore(int numRow, int numColumn, float factor = 0.5):
 		factor(factor),
-		indexEdge(new unsigned long[numRow]),
-		indexSource(new unsigned long[numRow]),
-		indexDestination(new unsigned long[numRow]),
+		indexEdge(new int[numRow]),
+		indexSource(new int[numRow]),
+		indexDestination(new int[numRow]),
 		numCurrentEdge(numRow, numColumn),
 		numTotalEdge(numCurrentEdge),
 		numCurrentSource(numRow, numColumn),
@@ -49,11 +49,11 @@ struct RelationalCore {
 		delete[] indexDestination;
 	}
 
-	static double ComputeScore(double a, double s, double t) {
+	static float ComputeScore(float a, float s, float t) {
 		return s == 0 || t - 1 == 0 ? 0 : pow((a - s / t) * t, 2) / (s * (t - 1));
 	}
 
-	double operator()(unsigned long source, unsigned long destination, unsigned long timestamp) {
+	float operator()(int source, int destination, int timestamp) {
 		if (this->timestamp < timestamp) {
 			numCurrentEdge.MultiplyAll(factor);
 			numCurrentSource.MultiplyAll(factor);
