@@ -17,6 +17,7 @@
 #pragma once
 
 #include <cmath>
+#include <string>
 #include "CountMinSketch.hpp"
 
 namespace MIDAS {

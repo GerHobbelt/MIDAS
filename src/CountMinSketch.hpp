@@ -17,6 +17,7 @@
 #pragma once
 
 #include <algorithm>
+#include <string>
 
 namespace MIDAS {
 struct CountMinSketch {
