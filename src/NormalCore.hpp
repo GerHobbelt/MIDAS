@@ -22,12 +22,12 @@
 
 namespace MIDAS {
 struct NormalCore {
-	int timestamp = 1;
-	int* const index; // Pre-compute the index to-be-modified, thanks to the same structure of CMSs
+	unsigned long timestamp = 1;
+	unsigned long* const index; // Pre-compute the index to-be-modified, thanks to the same structure of CMSs
 	CountMinSketch numCurrent, numTotal;
 
-	NormalCore(int numRow, int numColumn):
-		index(new int[numRow]),
+	NormalCore(unsigned long numRow, unsigned long numColumn):
+		index(new unsigned long[numRow]),
 		numCurrent(numRow, numColumn),
 		numTotal(numCurrent) { }
 
@@ -35,11 +35,11 @@ struct NormalCore {
 		delete[] index;
 	}
 
-	static float ComputeScore(float a, float s, float t) {
+	static float ComputeScore(double a, double s, double t) {
 		return s == 0 || t - 1 == 0 ? 0 : pow((a - s / t) * t, 2) / (s * (t - 1));
 	}
 
-	float operator()(int source, int destination, int timestamp) {
+	float operator()(unsigned long source, unsigned long destination, unsigned long timestamp) {
 		if (this->timestamp < timestamp) {
 			numCurrent.ClearAll();
 			this->timestamp = timestamp;

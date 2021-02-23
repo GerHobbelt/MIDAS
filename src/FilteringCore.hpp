@@ -22,26 +22,26 @@
 
 namespace MIDAS {
 struct FilteringCore {
-	const float threshold;
-	int timestamp = 1;
-	const float factor;
-	const int lenData;
-	int* const indexEdge; // Pre-compute the index to-be-modified, thanks to the Same-Layout Assumption
-	int* const indexSource;
-	int* const indexDestination;
+	const double threshold;
+	unsigned long timestamp = 1;
+	const double factor;
+	const unsigned long lenData;
+	unsigned long* const indexEdge; // Pre-compute the index to-be-modified, thanks to the Same-Layout Assumption
+	unsigned long* const indexSource;
+	unsigned long* const indexDestination;
 	CountMinSketch numCurrentEdge, numTotalEdge, scoreEdge;
 	CountMinSketch numCurrentSource, numTotalSource, scoreSource;
 	CountMinSketch numCurrentDestination, numTotalDestination, scoreDestination;
-	float timestampReciprocal = 0;
+	double timestampReciprocal = 0;
 	bool* const shouldMerge;
 
-	FilteringCore(int numRow, int numColumn, float threshold, float factor = 0.5):
+	FilteringCore(unsigned long numRow, unsigned long numColumn, double threshold, double factor = 0.5):
 		threshold(threshold),
 		factor(factor),
 		lenData(numRow * numColumn), // I assume all CMSs have same size, but Same-Layout Assumption is not that strict
-		indexEdge(new int[numRow]),
-		indexSource(new int[numRow]),
-		indexDestination(new int[numRow]),
+		indexEdge(new unsigned long[numRow]),
+		indexSource(new unsigned long[numRow]),
+		indexDestination(new unsigned long[numRow]),
 		numCurrentEdge(numRow, numColumn),
 		numTotalEdge(numCurrentEdge),
 		scoreEdge(numCurrentEdge),
@@ -60,18 +60,18 @@ struct FilteringCore {
 		delete[] shouldMerge;
 	}
 
-	static float ComputeScore(float a, float s, float t) {
+	static double ComputeScore(double a, double s, double t) {
 		return s == 0 ? 0 : pow(a + s - a * t, 2) / (s * (t - 1)); // If t == 1, then s == 0, so no need to check twice
 	}
 
-	void ConditionalMerge(const float* current, float* total, const float* score) const {
-		for (int i = 0; i < lenData; i++)
+	void ConditionalMerge(const double* current, double* total, const double* score) const {
+		for (unsigned long i = 0; i < lenData; i++)
 			shouldMerge[i] = score[i] < threshold;
-		for (int i = 0, I = lenData; i < I; i++) // Vectorization
+		for (unsigned long i = 0, I = lenData; i < I; i++) // Vectorization
 			total[i] += shouldMerge[i] * current[i] + (true - shouldMerge[i]) * total[i] * timestampReciprocal;
 	}
 
-	float operator()(int source, int destination, int timestamp) {
+	double operator()(unsigned long source, unsigned long destination, unsigned long timestamp) {
 		if (this->timestamp < timestamp) {
 			ConditionalMerge(numCurrentEdge.data, numTotalEdge.data, scoreEdge.data);
 			ConditionalMerge(numCurrentSource.data, numTotalSource.data, scoreSource.data);
