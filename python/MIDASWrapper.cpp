@@ -15,17 +15,33 @@ PYBIND11_MODULE(MIDAS, m) {
 
     py::class_<MIDAS::NormalCore>(m, "MIDAS")
             .def(py::init<int, int>(), py::arg("num_row"), py::arg("num_col"))
-            .def("add_edge", &MIDAS::NormalCore::operator(), py::arg("source"), py::arg("destination"),
+            .def("add_edge", static_cast<double (MIDAS::NormalCore::*)(unsigned long, unsigned long,
+                                                                      unsigned long)>(&MIDAS::NormalCore::operator()),
+                 py::arg("source"), py::arg("destination"),
+                 py::arg("timestamp"))
+            .def("add_edge", static_cast<double (MIDAS::NormalCore::*)(const char *, const char *,
+                                                                      unsigned long)>(&MIDAS::NormalCore::operator()),
+                 py::arg("source"), py::arg("destination"),
                  py::arg("timestamp"));
 
     py::class_<MIDAS::RelationalCore>(m, "MIDASR")
-            .def(py::init<int, int, float>(), py::arg("num_row"), py::arg("num_col"), py::arg("factor") = 0.5)
-            .def("add_edge", &MIDAS::RelationalCore::operator(), py::arg("source"), py::arg("destination"),
+            .def(py::init<int, int, double>(), py::arg("num_row"), py::arg("num_col"), py::arg("factor") = 0.5)
+            .def("add_edge", static_cast<double (MIDAS::RelationalCore::*)(unsigned long, unsigned long,
+                                                                       unsigned long)>(&MIDAS::RelationalCore::operator()),
+                 py::arg("source"), py::arg("destination"),
+                 py::arg("timestamp"))
+            .def("add_edge", static_cast<double (MIDAS::RelationalCore::*)(const char *, const char *,
+                                                                       unsigned long)>(&MIDAS::RelationalCore::operator()),
+                 py::arg("source"), py::arg("destination"),
                  py::arg("timestamp"));
 
     py::class_<MIDAS::FilteringCore>(m, "MIDASF")
-            .def(py::init<int, int, float, float>(), py::arg("num_row"), py::arg("num_col"), py::arg("threshold"),
-                 py::arg("factor") = 0.5)
-            .def("add_edge", &MIDAS::FilteringCore::operator(), py::arg("source"), py::arg("destination"),
+            .def("add_edge", static_cast<double (MIDAS::FilteringCore::*)(unsigned long, unsigned long,
+                                                                       unsigned long)>(&MIDAS::FilteringCore::operator()),
+                 py::arg("source"), py::arg("destination"),
+                 py::arg("timestamp"))
+            .def("add_edge", static_cast<double (MIDAS::FilteringCore::*)(const char *, const char *,
+                                                                       unsigned long)>(&MIDAS::FilteringCore::operator()),
+                 py::arg("source"), py::arg("destination"),
                  py::arg("timestamp"));
 }

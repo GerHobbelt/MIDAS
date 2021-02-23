@@ -21,33 +21,50 @@
 #include "CountMinSketch.hpp"
 
 namespace MIDAS {
-struct NormalCore {
-	int timestamp = 1;
-	int* const index; // Pre-compute the index to-be-modified, thanks to the same structure of CMSs
-	CountMinSketch numCurrent, numTotal;
+    struct NormalCore {
+        unsigned long timestamp = 1;
+        unsigned long *const index; // Pre-compute the index to-be-modified, thanks to the same structure of CMSs
+        CountMinSketch numCurrent, numTotal;
 
-	NormalCore(int numRow, int numColumn):
-		index(new int[numRow]),
-		numCurrent(numRow, numColumn),
-		numTotal(numCurrent) { }
+        NormalCore(int numRow, int numColumn) :
+                index(new unsigned long[numRow]),
+                numCurrent(numRow, numColumn),
+                numTotal(numCurrent) {}
 
-	virtual ~NormalCore() {
-		delete[] index;
-	}
+        virtual ~NormalCore() {
+            delete[] index;
+        }
 
-	static float ComputeScore(float a, float s, float t) {
-		return s == 0 || t - 1 == 0 ? 0 : pow((a - s / t) * t, 2) / (s * (t - 1));
-	}
+        static double ComputeScore(double a, double s, double t) {
+            return s == 0 || t - 1 == 0 ? 0 : pow((a - s / t) * t, 2) / (s * (t - 1));
+        }
 
-	float operator()(int source, int destination, int timestamp) {
-		if (this->timestamp < timestamp) {
-			numCurrent.ClearAll();
-			this->timestamp = timestamp;
-		}
-		numCurrent.Hash(index, source, destination);
-		numCurrent.Add(index);
-		numTotal.Add(index);
-		return ComputeScore(numCurrent(index), numTotal(index), timestamp);
-	}
-};
+        static unsigned long HashStr(const char *str) {
+            unsigned long hash = 5381;
+            int c;
+            while ((c = *str++)) {
+                hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+            }
+            return hash;
+        }
+
+        double operator()(const char *source, const char *destination, unsigned long timestamp) {
+            unsigned long intSource = HashStr(source);
+            unsigned long intDestination = HashStr(destination);
+
+            return this->operator()(intSource, intDestination, timestamp);
+        }
+
+        double operator()(unsigned long source, unsigned long destination, unsigned long timestamp) {
+            if (this->timestamp < timestamp) {
+                numCurrent.ClearAll();
+                this->timestamp = timestamp;
+            }
+            numCurrent.Hash(index, source, destination);
+            numCurrent.Add(index);
+            numTotal.Add(index);
+            return ComputeScore(numCurrent(index), numTotal(index), timestamp);
+        }
+
+    };
 }
