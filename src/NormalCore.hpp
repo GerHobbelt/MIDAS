@@ -17,7 +17,6 @@
 #pragma once
 
 #include <cmath>
-
 #include "CountMinSketch.hpp"
 
 namespace MIDAS {
@@ -39,16 +38,15 @@ namespace MIDAS {
             return s == 0 || t - 1 == 0 ? 0 : pow((a - s / t) * t, 2) / (s * (t - 1));
         }
 
-        static unsigned long HashStr(const char *str) {
+        static unsigned long HashStr(const std::string &str) {
             unsigned long hash = 5381;
-            int c;
-            while ((c = *str++)) {
-                hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+            for (auto c: str) {
+                hash = ((hash << 5) + hash) + (unsigned long) c; /* hash * 33 + c */
             }
             return hash;
         }
 
-        double operator()(const char *source, const char *destination, unsigned long timestamp) {
+        double operator()(const std::string &source, const std::string &destination, unsigned long timestamp) {
             unsigned long intSource = HashStr(source);
             unsigned long intDestination = HashStr(destination);
 
