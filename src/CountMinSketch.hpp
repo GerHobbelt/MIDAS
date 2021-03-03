@@ -17,6 +17,7 @@
 #pragma once
 
 #include <algorithm>
+#include <string>
 
 namespace MIDAS {
 struct CountMinSketch {
@@ -27,8 +28,8 @@ struct CountMinSketch {
 	const int lenData;
 	int* const param1;
 	int* const param2;
-	float* const data;
-	constexpr static float infinity = std::numeric_limits<float>::infinity();
+	double* const data;
+	constexpr static double infinity = std::numeric_limits<double>::infinity();
 
 	// Methods
 	// --------------------------------------------------------------------------------
@@ -42,7 +43,7 @@ struct CountMinSketch {
 		lenData(r * c),
 		param1(new int[r]),
 		param2(new int[r]),
-		data(new float[lenData]) {
+		data(new double[lenData]) {
 		for (int i = 0; i < r; i++) {
 			param1[i] = rand() + 1; // ×0 is not a good idea, see Hash()
 			param2[i] = rand();
@@ -56,7 +57,7 @@ struct CountMinSketch {
 		lenData(b.lenData),
 		param1(new int[r]),
 		param2(new int[r]),
-		data(new float[lenData]) {
+		data(new double[lenData]) {
 		std::copy(b.param1, b.param1 + r, param1);
 		std::copy(b.param2, b.param2 + r, param2);
 		std::copy(b.data, b.data + lenData, data);
@@ -68,36 +69,36 @@ struct CountMinSketch {
 		delete[] data;
 	}
 
-	void ClearAll(float with = 0) const {
+	void ClearAll(double with = 0) const {
 		std::fill(data, data + lenData, with);
 	}
 
-	void MultiplyAll(float by) const {
+	void MultiplyAll(double by) const {
 		for (int i = 0, I = lenData; i < I; i++) // Vectorization
 			data[i] *= by;
 	}
 
-	void Hash(int* indexOut, int a, int b = 0) const {
+	void Hash(unsigned long* indexOut, unsigned long a, unsigned long b = 0) const {
 		for (int i = 0; i < r; i++) {
 			indexOut[i] = ((a + m * b) * param1[i] + param2[i]) % c;
 			indexOut[i] += i * c + (indexOut[i] < 0 ? c : 0);
 		}
 	}
 
-	float operator()(const int* index) const {
-		float least = infinity;
+	double operator()(const unsigned long* index) const {
+		double least = infinity;
 		for (int i = 0; i < r; i++)
 			least = std::min(least, data[index[i]]);
 		return least;
 	}
 
-	float Assign(const int* index, float with) const {
+	double Assign(const unsigned long* index, double with) const {
 		for (int i = 0; i < r; i++)
 			data[index[i]] = with;
 		return with;
 	}
 
-	void Add(const int* index, float by = 1) const {
+	void Add(const unsigned long* index, double by = 1) const {
 		for (int i = 0; i < r; i++)
 			data[index[i]] += by;
 	}
