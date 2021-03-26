@@ -51,8 +51,5 @@ ADD_COMPILE_DEFINITIONS(
         SOLUTION_DIR="${CMAKE_SOURCE_DIR}/"
 )
 
-ADD_EXECUTABLE(Demo example/Demo.cpp)
-ADD_EXECUTABLE(Experiment example/Experiment.cpp)
-ADD_EXECUTABLE(Reproducible example/Reproducible.cpp)
 PYBIND11_ADD_MODULE(MIDAS python/MIDASWrapper.cpp)
 target_compile_definitions(MIDAS PRIVATE VERSION_INFO=${VERSION_INFO})
