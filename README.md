@@ -12,7 +12,7 @@ Blog post:
 
 ## Requirements
 
-*   Cmake
+*   Cmake >= 3.15
 *   C++11
 *   C++ standard libraries
 
