@@ -1,3 +1,9 @@
+## v1.2.0 (2021.03.26)
+
+- Add Python Wrapper
+- Change float to double and int to unsigned long to support large data
+- Support string src and dst
+
 ## v1.1.2 (2020.11.16)
 
 - Change C++ standard 20 -> 11

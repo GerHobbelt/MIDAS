@@ -101,7 +101,7 @@ class CMakeBuild(build_ext):
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
     name="MIDAS",
-    version="1.2",
+    version="1.2.0",
     description="MIDAS Wrapper",
     long_description="",
     ext_modules=[CMakeExtension("cmake_example")],
