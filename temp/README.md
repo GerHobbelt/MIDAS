@@ -1,1 +1,0 @@
-Most code put their results here and assume this folder always exists. But initially this folder is empty, so I created this placeholder file to commit this folder to git.
