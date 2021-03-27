@@ -8,7 +8,7 @@
 
 This repo is forked from [Stream-AD/MIDAS](https://github.com/Stream-AD/MIDAS). The core is written in C++. This repo added a Python wrapper to it.
 
-Blog post: 
+Blog post: https://blog.munhou.com/2021/03/27/Network-Anomaly-Detection-with%20MIDAS-MIDAS-R-and-MIDAS-F/ 
 
 ## Requirements
 
