@@ -20,87 +20,100 @@
 #include <string>
 
 namespace MIDAS {
-struct CountMinSketch {
-	// Fields
-	// --------------------------------------------------------------------------------
+    struct CountMinSketch {
+        // Fields
+        // --------------------------------------------------------------------------------
 
-	const int r, c, m = 104729; // Yes, a magic number, I just pick a random prime
-	const int lenData;
-	int* const param1;
-	int* const param2;
-	double* const data;
-	constexpr static double infinity = std::numeric_limits<double>::infinity();
+        const int r, c, m = 104729; // Yes, a magic number, I just pick a random prime
+        const int lenData;
+        int *const param1;
+        int *const param2;
+        double *const data;
+        constexpr static double infinity = std::numeric_limits<double>::infinity();
 
-	// Methods
-	// --------------------------------------------------------------------------------
+        // Methods
+        // --------------------------------------------------------------------------------
 
-	CountMinSketch() = delete;
-	CountMinSketch& operator=(const CountMinSketch& b) = delete;
+        CountMinSketch() = delete;
 
-	CountMinSketch(int numRow, int numColumn):
-		r(numRow),
-		c(numColumn),
-		lenData(r * c),
-		param1(new int[r]),
-		param2(new int[r]),
-		data(new double[lenData]) {
-		for (int i = 0; i < r; i++) {
-			param1[i] = rand() + 1; // ×0 is not a good idea, see Hash()
-			param2[i] = rand();
-		}
-		std::fill(data, data + lenData, 0);
-	}
+        CountMinSketch &operator=(const CountMinSketch &b) = delete;
 
-	CountMinSketch(const CountMinSketch& b):
-		r(b.r),
-		c(b.c),
-		lenData(b.lenData),
-		param1(new int[r]),
-		param2(new int[r]),
-		data(new double[lenData]) {
-		std::copy(b.param1, b.param1 + r, param1);
-		std::copy(b.param2, b.param2 + r, param2);
-		std::copy(b.data, b.data + lenData, data);
-	}
+        CountMinSketch(int numRow, int numColumn) :
+                r(numRow),
+                c(numColumn),
+                lenData(r * c),
+                param1(new int[r]),
+                param2(new int[r]),
+                data(new double[lenData]) {
+            for (int i = 0; i < r; i++) {
+                param1[i] = rand() + 1; // ×0 is not a good idea, see Hash()
+                param2[i] = rand();
+            }
+            std::fill(data, data + lenData, 0);
+        }
 
-	~CountMinSketch() {
-		delete[] param1;
-		delete[] param2;
-		delete[] data;
-	}
+        CountMinSketch(const CountMinSketch &b) :
+                r(b.r),
+                c(b.c),
+                lenData(b.lenData),
+                param1(new int[r]),
+                param2(new int[r]),
+                data(new double[lenData]) {
+            std::copy(b.param1, b.param1 + r, param1);
+            std::copy(b.param2, b.param2 + r, param2);
+            std::copy(b.data, b.data + lenData, data);
+        }
 
-	void ClearAll(double with = 0) const {
-		std::fill(data, data + lenData, with);
-	}
+        CountMinSketch(int numRow, int numColumn, int *param1, int *param2, double *data) :
+                r(numRow),
+                c(numColumn),
+                lenData(r * c),
+                param1(new int[r]),
+                param2(new int[r]),
+                data(new double[lenData]) {
+            std::copy(param1, param1 + r, this->param1);
+            std::copy(param2, param2 + r, this->param2);
+            std::copy(data, data + lenData, this->data);
+        }
 
-	void MultiplyAll(double by) const {
-		for (int i = 0, I = lenData; i < I; i++) // Vectorization
-			data[i] *= by;
-	}
+        ~CountMinSketch() {
+            delete[] param1;
+            delete[] param2;
+            delete[] data;
+        }
 
-	void Hash(unsigned long* indexOut, unsigned long a, unsigned long b = 0) const {
-		for (int i = 0; i < r; i++) {
-			indexOut[i] = ((a + m * b) * param1[i] + param2[i]) % c;
-			indexOut[i] += i * c + (indexOut[i] < 0 ? c : 0);
-		}
-	}
+        void ClearAll(double with = 0) const {
+            std::fill(data, data + lenData, with);
+        }
 
-	double operator()(const unsigned long* index) const {
-		double least = infinity;
-		for (int i = 0; i < r; i++)
-			least = std::min(least, data[index[i]]);
-		return least;
-	}
+        void MultiplyAll(double by) const {
+            for (int i = 0, I = lenData; i < I; i++) // Vectorization
+                data[i] *= by;
+        }
 
-	double Assign(const unsigned long* index, double with) const {
-		for (int i = 0; i < r; i++)
-			data[index[i]] = with;
-		return with;
-	}
+        void Hash(unsigned long *indexOut, unsigned long a, unsigned long b = 0) const {
+            for (int i = 0; i < r; i++) {
+                indexOut[i] = ((a + m * b) * param1[i] + param2[i]) % c;
+                indexOut[i] += i * c + (indexOut[i] < 0 ? c : 0);
+            }
+        }
 
-	void Add(const unsigned long* index, double by = 1) const {
-		for (int i = 0; i < r; i++)
-			data[index[i]] += by;
-	}
-};
+        double operator()(const unsigned long *index) const {
+            double least = infinity;
+            for (int i = 0; i < r; i++)
+                least = std::min(least, data[index[i]]);
+            return least;
+        }
+
+        double Assign(const unsigned long *index, double with) const {
+            for (int i = 0; i < r; i++)
+                data[index[i]] = with;
+            return with;
+        }
+
+        void Add(const unsigned long *index, double by = 1) const {
+            for (int i = 0; i < r; i++)
+                data[index[i]] += by;
+        }
+    };
 }
