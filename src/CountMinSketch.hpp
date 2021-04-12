@@ -154,7 +154,7 @@ namespace MIDAS {
         }
     };
 
-    CountMinSketch *LoadFromJson(json model) {
+    CountMinSketch *LoadCountMinSketchFromJson(json model) {
         CountMinSketch *ret = nullptr;
 
         try {
@@ -189,13 +189,13 @@ namespace MIDAS {
 
     }
 
-    CountMinSketch *LoadFromFile(std::string path) {
+    CountMinSketch *LoadCountMinSketchFromFile(std::string path) {
         std::ifstream in(path);
         CountMinSketch *ret = nullptr;
 
         try {
             json model = json::parse(in);
-            ret = LoadFromJson(model);
+            ret = LoadCountMinSketchFromJson(model);
         }
         catch (std::exception &e) {
             std::cout << e.what() << std::endl;
