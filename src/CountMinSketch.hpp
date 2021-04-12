@@ -70,16 +70,17 @@ namespace MIDAS {
             std::copy(b.data, b.data + lenData, data);
         }
 
-        CountMinSketch(int numRow, int numColumn, int *param1, int *param2, double *data) :
+        CountMinSketch(int numRow, int numColumn, std::vector<int> param1, std::vector<int> param2,
+                       std::vector<double> data) :
                 r(numRow),
                 c(numColumn),
                 lenData(r * c),
                 param1(new int[r]),
                 param2(new int[r]),
                 data(new double[lenData]) {
-            std::copy(param1, param1 + r, this->param1);
-            std::copy(param2, param2 + r, this->param2);
-            std::copy(data, data + lenData, this->data);
+            std::copy(param1.begin(), param1.end(), this->param1);
+            std::copy(param2.begin(), param2.end(), this->param2);
+            std::copy(data.begin(), data.end(), this->data);
         }
 
         ~CountMinSketch() {
@@ -130,7 +131,7 @@ namespace MIDAS {
 
             std::copy(param1, param1 + r, std::back_inserter(copyParam1));
             std::copy(param2, param2 + r, std::back_inserter(copyParam2));
-            std::copy(data, data + r, std::back_inserter(copyData));
+            std::copy(data, data + lenData, std::back_inserter(copyData));
 
             model["r"] = r;
             model["c"] = c;
@@ -141,7 +142,7 @@ namespace MIDAS {
             return model;
         }
 
-        int DumpToFile(const std::string& path) {
+        int DumpToFile(const std::string &path) {
             int rc = 0;
             std::ofstream out(path);
             try {
@@ -165,28 +166,15 @@ namespace MIDAS {
             // extracting elements
             int r = model["r"];
             int c = model["c"];
+            int lenData = r * c;
 
             std::vector<int> tempParam1 = model["param1"];
             std::vector<int> tempParam2 = model["param2"];
             std::vector<double> tempData = model["data"];
 
             // verify number of elements
-            if ((tempData.size() == r) && (tempParam1.size() == r) && (tempParam2.size() == r)) {
-                auto *param1 = new int[r];
-                auto *param2 = new int[r];
-                auto *data = new double[r];
-
-
-                std::copy(tempParam1.begin(), tempParam1.end(), param1);
-                std::copy(tempParam2.begin(), tempParam2.end(), param2);
-                std::copy(tempData.begin(), tempData.end(), data);
-
-                ret = new CountMinSketch(r, c, param1, param2, data);
-
-                delete[] param1;
-                delete[] param2;
-                delete[] data;
-
+            if ((tempData.size() == lenData) && (tempParam1.size() == r) && (tempParam2.size() == r)) {
+                ret = new CountMinSketch(r, c, tempParam1, tempParam2, tempData);
             }
         }
         catch (std::exception &e) {
@@ -198,7 +186,7 @@ namespace MIDAS {
 
     }
 
-    CountMinSketch *LoadCountMinSketchFromFile(const std::string& path) {
+    CountMinSketch *LoadCountMinSketchFromFile(const std::string &path) {
         std::ifstream in(path);
         CountMinSketch *ret = nullptr;
 
