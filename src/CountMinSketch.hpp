@@ -74,9 +74,13 @@ namespace MIDAS {
                 r(numRow),
                 c(numColumn),
                 lenData(r * c),
-                param1(param1),
-                param2(param2),
-                data(data) {}
+                param1(new int[r]),
+                param2(new int[r]),
+                data(new double[lenData]) {
+            std::copy(param1, param1 + r, this->param1);
+            std::copy(param2, param2 + r, this->param2);
+            std::copy(data, data + lenData, this->data);
+        }
 
         ~CountMinSketch() {
             delete[] param1;
@@ -178,6 +182,11 @@ namespace MIDAS {
                 std::copy(tempData.begin(), tempData.end(), data);
 
                 ret = new CountMinSketch(r, c, param1, param2, data);
+
+                delete[] param1;
+                delete[] param2;
+                delete[] data;
+
             }
         }
         catch (std::exception &e) {
