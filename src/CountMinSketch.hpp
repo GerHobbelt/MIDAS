@@ -141,7 +141,7 @@ namespace MIDAS {
             return model;
         }
 
-        int DumpToFile(std::string path) {
+        int DumpToFile(const std::string& path) {
             int rc = 0;
             std::ofstream out(path);
             try {
@@ -198,7 +198,7 @@ namespace MIDAS {
 
     }
 
-    CountMinSketch *LoadCountMinSketchFromFile(std::string path) {
+    CountMinSketch *LoadCountMinSketchFromFile(const std::string& path) {
         std::ifstream in(path);
         CountMinSketch *ret = nullptr;
 
