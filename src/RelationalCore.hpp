@@ -23,6 +23,7 @@
 
 namespace MIDAS {
     struct RelationalCore {
+        const int numRow, numColumn;
         unsigned long timestamp = 1;
         const double factor;
         unsigned long *const indexEdge; // Pre-compute the index to-be-modified, thanks to the same structure of CMSs
@@ -33,6 +34,8 @@ namespace MIDAS {
         CountMinSketch numCurrentDestination, numTotalDestination;
 
         RelationalCore(int numRow, int numColumn, double factor = 0.5) :
+                numRow(numRow),
+                numColumn(numColumn),
                 factor(factor),
                 indexEdge(new unsigned long[numRow]),
                 indexSource(new unsigned long[numRow]),
@@ -43,6 +46,28 @@ namespace MIDAS {
                 numTotalSource(numCurrentSource),
                 numCurrentDestination(numRow, numColumn),
                 numTotalDestination(numCurrentDestination) {}
+
+        RelationalCore(int numRow, int numColumn, unsigned long timestamp, double factor, unsigned long *indexEdge,
+                       unsigned long *indexSource, unsigned long *indexDestination, CountMinSketch *numCurrentEdge,
+                       CountMinSketch *numTotalEdge, CountMinSketch *numCurrentSource, CountMinSketch *numTotalSource,
+                       CountMinSketch *numCurrentDestination, CountMinSketch *numTotalDestination) :
+                numRow(numRow),
+                numColumn(numColumn),
+                factor(factor),
+                timestamp(timestamp),
+                indexEdge(new unsigned long[numRow]),
+                indexSource(new unsigned long[numRow]),
+                indexDestination(new unsigned long[numRow]),
+                numCurrentEdge(*numCurrentEdge),
+                numTotalEdge(*numTotalEdge),
+                numCurrentSource(*numCurrentSource),
+                numTotalSource(*numTotalSource),
+                numCurrentDestination(*numCurrentDestination),
+                numTotalDestination(*numTotalDestination) {
+            std::copy(indexSource, indexSource + numRow, this->indexSource);
+            std::copy(indexEdge, indexEdge + numRow, this->indexEdge);
+            std::copy(indexDestination, indexDestination + numRow, this->indexDestination);
+        }
 
         virtual ~RelationalCore() {
             delete[] indexEdge;
@@ -92,5 +117,137 @@ namespace MIDAS {
                                                  numTotalDestination(indexDestination), timestamp),
                             });
         }
+
+        json SerializeAsJson() {
+            json model = json();
+            auto copyIndexEdge = json::array();
+            auto copyIndexSource = json::array();
+            auto copyIndexDestination = json::array();
+
+            std::copy(indexEdge, indexEdge + numRow, std::back_inserter(copyIndexEdge));
+            std::copy(indexSource, indexSource + numRow, std::back_inserter(copyIndexSource));
+            std::copy(indexDestination, indexDestination + numRow, std::back_inserter(copyIndexDestination));
+
+            model["numRow"] = numRow;
+            model["numColumn"] = numColumn;
+            model["timestamp"] = timestamp;
+            model["factor"] = factor;
+            model["indexEdge"] = copyIndexEdge;
+            model["indexSource"] = copyIndexSource;
+            model["indexDestination"] = copyIndexDestination;
+            model["numCurrentEdge"] = numCurrentEdge.SerializeAsJson();
+            model["numTotalEdge"] = numTotalEdge.SerializeAsJson();
+            model["numCurrentSource"] = numCurrentSource.SerializeAsJson();
+            model["numTotalSource"] = numTotalSource.SerializeAsJson();
+            model["numCurrentDestination"] = numCurrentDestination.SerializeAsJson();
+            model["numTotalDestination"] = numTotalDestination.SerializeAsJson();
+
+            return model;
+        }
+
+        int DumpToFile(const std::string &path) {
+            int rc = 0;
+            std::ofstream out(path);
+            try {
+                json model = SerializeAsJson();
+                out << model.dump(4);
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {
+                rc = -1;
+            }
+            return rc;
+        }
     };
+
+    RelationalCore *LoadRelationCoreFromJson(json model) {
+        RelationalCore *ret = nullptr;
+
+        try {
+            // extracting elements
+            int numRow = model["numRow"];
+            int numColumn = model["numColumn"];
+            double factor = model["factor"];
+            unsigned long timestamp = model["timestamp"];
+
+            std::vector<unsigned long> tempIndexEdge = model["indexEdge"];
+            std::vector<unsigned long> tempIndexSource = model["indexSource"];
+            std::vector<unsigned long> tempIndexDestination = model["indexDestination"];
+
+            json numCurrentEdgeJson = model["numCurrentEdge"];
+            json numTotalEdgeJson = model["numTotalEdge"];
+            json numCurrentSourceJson = model["numCurrentSource"];
+            json numTotalSourceJson = model["numTotalSource"];
+            json numCurrentDestinationJson = model["numCurrentDestination"];
+            json numTotalDestinationJson = model["numTotalDestination"];
+
+            // verify number of elements
+            if ((tempIndexEdge.size() == numRow) && (tempIndexSource.size() == numRow) &&
+                (tempIndexDestination.size() == numRow)) {
+                auto *indexEdge = new unsigned long[numRow];
+                auto *indexSource = new unsigned long[numRow];
+                auto *indexDestination = new unsigned long[numRow];
+
+                std::copy(tempIndexEdge.begin(), tempIndexEdge.end(), indexEdge);
+                std::copy(tempIndexSource.begin(), tempIndexSource.end(), indexSource);
+                std::copy(tempIndexDestination.begin(), tempIndexDestination.end(), indexDestination);
+
+                CountMinSketch *numCurrentEdge = MIDAS::LoadCountMinSketchFromJson(numCurrentEdgeJson);
+                CountMinSketch *numTotalEdge = MIDAS::LoadCountMinSketchFromJson(numTotalEdgeJson);
+                CountMinSketch *numCurrentSource = MIDAS::LoadCountMinSketchFromJson(numCurrentSourceJson);
+                CountMinSketch *numTotalSource = MIDAS::LoadCountMinSketchFromJson(numTotalSourceJson);
+                CountMinSketch *numCurrentDestination = MIDAS::LoadCountMinSketchFromJson(numCurrentDestinationJson);
+                CountMinSketch *numTotalDestination = MIDAS::LoadCountMinSketchFromJson(numTotalDestinationJson);
+
+                if (
+                        numCurrentEdge != nullptr
+                        && numTotalEdge != nullptr
+                        && numCurrentSource != nullptr
+                        && numTotalSource != nullptr
+                        && numCurrentDestination != nullptr
+                        && numTotalDestination != nullptr
+                        ) {
+
+                    ret = new RelationalCore(numRow, numColumn, timestamp, factor, indexEdge, indexSource,
+                                             indexDestination, numCurrentEdge, numTotalEdge, numCurrentSource,
+                                             numTotalSource, numCurrentDestination, numTotalDestination);
+                }
+
+                delete[] indexEdge;
+                delete[] indexSource;
+                delete[] indexDestination;
+                delete numCurrentEdge;
+                delete numTotalEdge;
+                delete numCurrentSource;
+                delete numTotalSource;
+                delete numCurrentDestination;
+                delete numTotalDestination;
+            }
+        }
+        catch (std::exception &e) {
+            std::cout << e.what() << std::endl;
+        }
+        catch (...) {}
+
+        return ret;
+
+    }
+
+    RelationalCore *LoadRelationalCoreFromFile(const std::string &path) {
+        std::ifstream in(path);
+        RelationalCore *ret = nullptr;
+
+        try {
+            json model = json::parse(in);
+            ret = LoadRelationCoreFromJson(model);
+        }
+        catch (std::exception &e) {
+            std::cout << e.what() << std::endl;
+        }
+        catch (...) {}
+
+        return ret;
+    }
 }
