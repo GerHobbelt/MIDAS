@@ -144,6 +144,9 @@ namespace MIDAS {
                 json model = SerializeAsJson();
                 out << model.dump(4);
             }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
             catch (...) {
                 rc = -1;
             }
@@ -159,9 +162,9 @@ namespace MIDAS {
             int r = model["r"];
             int c = model["c"];
 
-            auto tempParam1 = model["param1"];
-            auto tempParam2 = model["param2"];
-            auto tempData = model["data"];
+            std::vector<int> tempParam1 = model["param1"];
+            std::vector<int> tempParam2 = model["param2"];
+            std::vector<double> tempData = model["data"];
 
             // verify number of elements
             if ((tempData.size() == r) && (tempParam1.size() == r) && (tempParam2.size() == r)) {
@@ -177,6 +180,9 @@ namespace MIDAS {
                 ret = new CountMinSketch(r, c, param1, param2, data);
             }
         }
+        catch (std::exception &e) {
+            std::cout << e.what() << std::endl;
+        }
         catch (...) {}
 
         return ret;
@@ -186,13 +192,15 @@ namespace MIDAS {
     CountMinSketch *LoadFromFile(std::string path) {
         std::ifstream in(path);
         CountMinSketch *ret = nullptr;
-        if (in.is_open()) {
-            try {
-                json model = json::parse(in);
-                ret = LoadFromJson(model);
-            }
-            catch (...) {}
+
+        try {
+            json model = json::parse(in);
+            ret = LoadFromJson(model);
         }
+        catch (std::exception &e) {
+            std::cout << e.what() << std::endl;
+        }
+        catch (...) {}
 
         return ret;
     }
