@@ -17,8 +17,14 @@
 #pragma once
 
 #include <algorithm>
+#include <iterator>
 #include <string>
+#include <iostream>
+#include <fstream>
+#include <nlohmann/json.hpp>
 
+
+using json = nlohmann::json;
 namespace MIDAS {
     struct CountMinSketch {
         // Fields
@@ -68,13 +74,9 @@ namespace MIDAS {
                 r(numRow),
                 c(numColumn),
                 lenData(r * c),
-                param1(new int[r]),
-                param2(new int[r]),
-                data(new double[lenData]) {
-            std::copy(param1, param1 + r, this->param1);
-            std::copy(param2, param2 + r, this->param2);
-            std::copy(data, data + lenData, this->data);
-        }
+                param1(param1),
+                param2(param2),
+                data(data) {}
 
         ~CountMinSketch() {
             delete[] param1;
@@ -115,5 +117,83 @@ namespace MIDAS {
             for (int i = 0; i < r; i++)
                 data[index[i]] += by;
         }
+
+        json SerializeAsJson() {
+            json model = json();
+            auto copyParam1 = json::array();
+            auto copyParam2 = json::array();
+            auto copyData = json::array();
+
+            std::copy(param1, param1 + r, std::back_inserter(copyParam1));
+            std::copy(param2, param2 + r, std::back_inserter(copyParam2));
+            std::copy(data, data + r, std::back_inserter(copyData));
+
+            model["r"] = r;
+            model["c"] = c;
+            model["param1"] = copyParam1;
+            model["param2"] = copyParam2;
+            model["data"] = copyData;
+
+            return model;
+        }
+
+        int DumpToFile(std::string path) {
+            int rc = 0;
+            std::ofstream out(path);
+            try {
+                json model = SerializeAsJson();
+                out << model.dump(4);
+            }
+            catch (...) {
+                rc = -1;
+            }
+            return rc;
+        }
     };
+
+    CountMinSketch *LoadFromJson(json model) {
+        CountMinSketch *ret = nullptr;
+
+        try {
+            // extracting elements
+            int r = model["r"];
+            int c = model["c"];
+
+            auto tempParam1 = model["param1"];
+            auto tempParam2 = model["param2"];
+            auto tempData = model["data"];
+
+            // verify number of elements
+            if ((tempData.size() == r) && (tempParam1.size() == r) && (tempParam2.size() == r)) {
+                auto *param1 = new int[r];
+                auto *param2 = new int[r];
+                auto *data = new double[r];
+
+
+                std::copy(tempParam1.begin(), tempParam1.end(), param1);
+                std::copy(tempParam2.begin(), tempParam2.end(), param2);
+                std::copy(tempData.begin(), tempData.end(), data);
+
+                ret = new CountMinSketch(r, c, param1, param2, data);
+            }
+        }
+        catch (...) {}
+
+        return ret;
+
+    }
+
+    CountMinSketch *LoadFromFile(std::string path) {
+        std::ifstream in(path);
+        CountMinSketch *ret = nullptr;
+        if (in.is_open()) {
+            try {
+                json model = json::parse(in);
+                ret = LoadFromJson(model);
+            }
+            catch (...) {}
+        }
+
+        return ret;
+    }
 }
