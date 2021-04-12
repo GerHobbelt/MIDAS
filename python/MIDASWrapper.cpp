@@ -34,7 +34,9 @@ PYBIND11_MODULE(MIDAS, m) {
             .def("add_edge", static_cast<double (MIDAS::RelationalCore::*)(const std::string &, const std::string &,
                                                                            unsigned long)>(&MIDAS::RelationalCore::operator()),
                  py::arg("source"), py::arg("destination"),
-                 py::arg("timestamp"));
+                 py::arg("timestamp"))
+            .def("dump", &MIDAS::RelationalCore::DumpToFile, py::arg("path"))
+            .def("load", &MIDAS::LoadRelationalCoreFromFile);
 
     py::class_<MIDAS::FilteringCore>(m, "MIDASF")
             .def("add_edge", static_cast<double (MIDAS::FilteringCore::*)(unsigned long, unsigned long,
