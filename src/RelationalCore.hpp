@@ -47,8 +47,9 @@ namespace MIDAS {
                 numCurrentDestination(numRow, numColumn),
                 numTotalDestination(numCurrentDestination) {}
 
-        RelationalCore(int numRow, int numColumn, unsigned long timestamp, double factor, unsigned long *indexEdge,
-                       unsigned long *indexSource, unsigned long *indexDestination, CountMinSketch *numCurrentEdge,
+        RelationalCore(int numRow, int numColumn, unsigned long timestamp, double factor,
+                       std::vector<unsigned long> indexEdge, std::vector<unsigned long> indexSource,
+                       std::vector<unsigned long> indexDestination, CountMinSketch *numCurrentEdge,
                        CountMinSketch *numTotalEdge, CountMinSketch *numCurrentSource, CountMinSketch *numTotalSource,
                        CountMinSketch *numCurrentDestination, CountMinSketch *numTotalDestination) :
                 numRow(numRow),
@@ -64,9 +65,9 @@ namespace MIDAS {
                 numTotalSource(*numTotalSource),
                 numCurrentDestination(*numCurrentDestination),
                 numTotalDestination(*numTotalDestination) {
-            std::copy(indexSource, indexSource + numRow, this->indexSource);
-            std::copy(indexEdge, indexEdge + numRow, this->indexEdge);
-            std::copy(indexDestination, indexDestination + numRow, this->indexDestination);
+            std::copy(indexSource.begin(), indexSource.end(), this->indexSource);
+            std::copy(indexEdge.begin(), indexEdge.end(), this->indexEdge);
+            std::copy(indexDestination.begin(), indexDestination.end(), this->indexDestination);
         }
 
         virtual ~RelationalCore() {
@@ -186,13 +187,6 @@ namespace MIDAS {
             // verify number of elements
             if ((tempIndexEdge.size() == numRow) && (tempIndexSource.size() == numRow) &&
                 (tempIndexDestination.size() == numRow)) {
-                auto *indexEdge = new unsigned long[numRow];
-                auto *indexSource = new unsigned long[numRow];
-                auto *indexDestination = new unsigned long[numRow];
-
-                std::copy(tempIndexEdge.begin(), tempIndexEdge.end(), indexEdge);
-                std::copy(tempIndexSource.begin(), tempIndexSource.end(), indexSource);
-                std::copy(tempIndexDestination.begin(), tempIndexDestination.end(), indexDestination);
 
                 CountMinSketch *numCurrentEdge = MIDAS::LoadCountMinSketchFromJson(numCurrentEdgeJson);
                 CountMinSketch *numTotalEdge = MIDAS::LoadCountMinSketchFromJson(numTotalEdgeJson);
@@ -210,14 +204,11 @@ namespace MIDAS {
                         && numTotalDestination != nullptr
                         ) {
 
-                    ret = new RelationalCore(numRow, numColumn, timestamp, factor, indexEdge, indexSource,
-                                             indexDestination, numCurrentEdge, numTotalEdge, numCurrentSource,
+                    ret = new RelationalCore(numRow, numColumn, timestamp, factor, tempIndexEdge, tempIndexSource,
+                                             tempIndexDestination, numCurrentEdge, numTotalEdge, numCurrentSource,
                                              numTotalSource, numCurrentDestination, numTotalDestination);
                 }
 
-                delete[] indexEdge;
-                delete[] indexSource;
-                delete[] indexDestination;
                 delete numCurrentEdge;
                 delete numTotalEdge;
                 delete numCurrentSource;
