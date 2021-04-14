@@ -22,7 +22,7 @@ Blog post: https://blog.munhou.com/2021/03/27/Network-Anomaly-Detection-with%20M
 1. Open a terminal
 1. `cd` to the project root `MIDAS/`
 1. Install with pip: `pip install .`
-1. Run folowwing code to test.
+1. Run following code to test.
 ```python
 from MIDAS import MIDAS, MIDASR, MIDASF
 
@@ -44,6 +44,16 @@ example_timestamp = 1
 score = midas.add_edge(source=example_source, destination=example_destination, timestamp=example_timestamp)
 score_r = midas_r.add_edge(source=example_source, destination=example_destination, timestamp=example_timestamp)
 score_f = midas_f.add_edge(source=example_source, destination=example_destination, timestamp=example_timestamp)
+
+# dump model 
+midas.dump('midas.json')
+midas_r.dump('midas_r.json')
+midas_f.dump('midas_f.json')
+
+# load model
+midas = MIDAS.load('midas.json')
+midas_r = MIDASR.load('midas_r.json')
+midas_f = MIDASF.load('midas_f.json')
 ```
 
 ## Citation
