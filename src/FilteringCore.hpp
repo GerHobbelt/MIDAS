@@ -23,6 +23,7 @@
 
 namespace MIDAS {
     struct FilteringCore {
+        const int numRow, numColumn;
         const double threshold;
         unsigned long timestamp = 1;
         const double factor;
@@ -37,6 +38,8 @@ namespace MIDAS {
         bool *const shouldMerge;
 
         FilteringCore(int numRow, int numColumn, double threshold, double factor = 0.5) :
+                numRow(numRow),
+                numColumn(numColumn),
                 threshold(threshold),
                 factor(factor),
                 lenData(numRow *
@@ -54,6 +57,39 @@ namespace MIDAS {
                 numTotalDestination(numCurrentDestination),
                 scoreDestination(numCurrentDestination),
                 shouldMerge(new bool[numRow * numColumn]) {}
+
+        FilteringCore(int numRow, int numColumn, double threshold, unsigned long timestamp, double factor,
+                      std::vector<unsigned long> indexEdge, std::vector<unsigned long> indexSource,
+                      std::vector<unsigned long> indexDestination, CountMinSketch *numCurrentEdge,
+                      CountMinSketch *numTotalEdge, CountMinSketch *scoreEdge, CountMinSketch *numCurrentSource,
+                      CountMinSketch *numTotalSource, CountMinSketch *scoreSource,
+                      CountMinSketch *numCurrentDestination, CountMinSketch *numTotalDestination,
+                      CountMinSketch *scoreDestination, double timestampReciprocal, std::vector<bool> shouldMerge) :
+                numRow(numRow),
+                numColumn(numColumn),
+                threshold(threshold),
+                factor(factor),
+                lenData(numRow * numColumn),
+                timestamp(timestamp),
+                indexEdge(new unsigned long[numRow]),
+                indexSource(new unsigned long[numRow]),
+                indexDestination(new unsigned long[numRow]),
+                numCurrentEdge(*numCurrentEdge),
+                numTotalEdge(*numTotalEdge),
+                scoreEdge(*scoreEdge),
+                numCurrentSource(*numCurrentSource),
+                numTotalSource(*numTotalSource),
+                scoreSource(*scoreSource),
+                numCurrentDestination(*numCurrentDestination),
+                numTotalDestination(*numTotalDestination),
+                scoreDestination(*scoreDestination),
+                timestampReciprocal(timestampReciprocal),
+                shouldMerge(new bool[numRow * numColumn]) {
+            std::copy(indexSource.begin(), indexSource.end(), this->indexSource);
+            std::copy(indexEdge.begin(), indexEdge.end(), this->indexEdge);
+            std::copy(indexDestination.begin(), indexDestination.end(), this->indexDestination);
+            std::copy(shouldMerge.begin(), shouldMerge.end(), this->shouldMerge);
+        }
 
         virtual ~FilteringCore() {
             delete[] indexEdge;
@@ -118,6 +154,155 @@ namespace MIDAS {
                                                                          numTotalDestination(indexDestination),
                                                                          timestamp)),
                             });
+        }
+
+        json SerializeAsJson() {
+            json model = json();
+            auto copyIndexEdge = json::array();
+            auto copyIndexSource = json::array();
+            auto copyIndexDestination = json::array();
+            auto copyShouldMerge = json::array();
+
+
+            std::copy(indexEdge, indexEdge + numRow, std::back_inserter(copyIndexEdge));
+            std::copy(indexSource, indexSource + numRow, std::back_inserter(copyIndexSource));
+            std::copy(indexDestination, indexDestination + numRow, std::back_inserter(copyIndexDestination));
+            std::copy(shouldMerge, shouldMerge + (numRow * numColumn), std::back_inserter(copyShouldMerge));
+
+            model["numRow"] = numRow;
+            model["numColumn"] = numColumn;
+            model["threshold"] = threshold;
+            model["timestamp"] = timestamp;
+            model["factor"] = factor;
+            model["indexEdge"] = copyIndexEdge;
+            model["indexSource"] = copyIndexSource;
+            model["indexDestination"] = copyIndexDestination;
+            model["numCurrentEdge"] = numCurrentEdge.SerializeAsJson();
+            model["numTotalEdge"] = numTotalEdge.SerializeAsJson();
+            model["scoreEdge"] = scoreEdge.SerializeAsJson();
+            model["numCurrentSource"] = numCurrentSource.SerializeAsJson();
+            model["numTotalSource"] = numTotalSource.SerializeAsJson();
+            model["scoreSource"] = scoreSource.SerializeAsJson();
+            model["numCurrentDestination"] = numCurrentDestination.SerializeAsJson();
+            model["numTotalDestination"] = numTotalDestination.SerializeAsJson();
+            model["scoreDestination"] = scoreDestination.SerializeAsJson();
+            model["timestampReciprocal"] = timestampReciprocal;
+            model["shouldMerge"] = copyShouldMerge;
+
+            return model;
+        }
+
+        int DumpToFile(const std::string &path) {
+            int rc = 0;
+            std::ofstream out(path);
+            try {
+                json model = SerializeAsJson();
+                out << model.dump(4);
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {
+                rc = -1;
+            }
+            return rc;
+        }
+
+        static FilteringCore *LoadFromJson(json model) {
+            FilteringCore *ret = nullptr;
+
+            try {
+                // extracting elements
+                int numRow = model["numRow"];
+                int numColumn = model["numColumn"];
+                double threshold = model["threshold"];
+                unsigned long timestamp = model["timestamp"];
+                double factor = model["factor"];
+
+                std::vector<unsigned long> tempIndexEdge = model["indexEdge"];
+                std::vector<unsigned long> tempIndexSource = model["indexSource"];
+                std::vector<unsigned long> tempIndexDestination = model["indexDestination"];
+
+                json numCurrentEdgeJson = model["numCurrentEdge"];
+                json numTotalEdgeJson = model["numTotalEdge"];
+                json scoreEdgeJson = model["scoreEdge"];
+                json numCurrentSourceJson = model["numCurrentSource"];
+                json numTotalSourceJson = model["numTotalSource"];
+                json scoreSourceJson = model["scoreSource"];
+                json numCurrentDestinationJson = model["numCurrentDestination"];
+                json numTotalDestinationJson = model["numTotalDestination"];
+                json scoreDestinationJson = model["scoreDestination"];
+
+                double timestampReciprocal = model["timestampReciprocal"];
+                std::vector<bool> tempShouldMerge = model["shouldMerge"];
+
+                // verify number of elements
+                if ((tempIndexEdge.size() == numRow) && (tempIndexSource.size() == numRow) &&
+                    (tempIndexDestination.size() == numRow) && (tempShouldMerge.size() == (numRow * numColumn))) {
+
+                    CountMinSketch *numCurrentEdge = CountMinSketch::LoadFromJson(numCurrentEdgeJson);
+                    CountMinSketch *numTotalEdge = CountMinSketch::LoadFromJson(numTotalEdgeJson);
+                    CountMinSketch *scoreEdge = CountMinSketch::LoadFromJson(scoreEdgeJson);
+                    CountMinSketch *numCurrentSource = CountMinSketch::LoadFromJson(numCurrentSourceJson);
+                    CountMinSketch *numTotalSource = CountMinSketch::LoadFromJson(numTotalSourceJson);
+                    CountMinSketch *scoreSource = CountMinSketch::LoadFromJson(scoreSourceJson);
+                    CountMinSketch *numCurrentDestination = CountMinSketch::LoadFromJson(numCurrentDestinationJson);
+                    CountMinSketch *numTotalDestination = CountMinSketch::LoadFromJson(numTotalDestinationJson);
+                    CountMinSketch *scoreDestination = CountMinSketch::LoadFromJson(scoreDestinationJson);
+
+                    if (
+                            numCurrentEdge != nullptr
+                            && numTotalEdge != nullptr
+                            && scoreEdge != nullptr
+                            && numCurrentSource != nullptr
+                            && numTotalSource != nullptr
+                            && scoreSource != nullptr
+                            && numCurrentDestination != nullptr
+                            && numTotalDestination != nullptr
+                            && scoreDestination != nullptr
+                            ) {
+
+                        ret = new FilteringCore(numRow, numColumn, threshold, timestamp, factor, tempIndexEdge,
+                                                tempIndexSource, tempIndexDestination, numCurrentEdge, numTotalEdge,
+                                                scoreEdge, numCurrentSource, numTotalSource, scoreSource,
+                                                numCurrentDestination, numTotalDestination, scoreDestination,
+                                                timestampReciprocal, tempShouldMerge);
+                    }
+
+                    delete numCurrentEdge;
+                    delete numTotalEdge;
+                    delete scoreEdge;
+                    delete numCurrentSource;
+                    delete numTotalSource;
+                    delete scoreSource;
+                    delete numCurrentDestination;
+                    delete numTotalDestination;
+                    delete scoreDestination;
+                }
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {}
+
+            return ret;
+
+        }
+
+        static FilteringCore *LoadFromFile(const std::string &path) {
+            std::ifstream in(path);
+            FilteringCore *ret = nullptr;
+
+            try {
+                json model = json::parse(in);
+                ret = FilteringCore::LoadFromJson(model);
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {}
+
+            return ret;
         }
     };
 }
