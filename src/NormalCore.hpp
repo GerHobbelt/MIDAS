@@ -22,14 +22,28 @@
 
 namespace MIDAS {
     struct NormalCore {
+        const int numRow, numColumn;
         unsigned long timestamp = 1;
         unsigned long *const index; // Pre-compute the index to-be-modified, thanks to the same structure of CMSs
         CountMinSketch numCurrent, numTotal;
 
         NormalCore(int numRow, int numColumn) :
+                numRow(numRow),
+                numColumn(numColumn),
                 index(new unsigned long[numRow]),
                 numCurrent(numRow, numColumn),
                 numTotal(numCurrent) {}
+
+        NormalCore(int numRow, int numColumn, unsigned long timestamp, std::vector<unsigned long> index, CountMinSketch *numCurrent,
+                   CountMinSketch *numTotal) :
+                numRow(numRow),
+                numColumn(numColumn),
+                timestamp(timestamp),
+                index(new unsigned long[numRow]),
+                numCurrent(*numCurrent),
+                numTotal(*numTotal) {
+            std::copy(index.begin(), index.end(), this->index);
+        }
 
         virtual ~NormalCore() {
             delete[] index;
@@ -65,5 +79,93 @@ namespace MIDAS {
             return ComputeScore(numCurrent(index), numTotal(index), timestamp);
         }
 
+        json SerializeAsJson() {
+            json model = json();
+            auto copyIndex = json::array();
+
+            std::copy(index, index + numRow, std::back_inserter(copyIndex));
+
+            model["numRow"] = numRow;
+            model["numColumn"] = numColumn;
+            model["timestamp"] = timestamp;
+            model["index"] = copyIndex;
+            model["numCurrent"] = numCurrent.SerializeAsJson();
+            model["numTotal"] = numTotal.SerializeAsJson();
+
+            return model;
+        }
+
+        int DumpToFile(const std::string &path) {
+            int rc = 0;
+            std::ofstream out(path);
+            try {
+                json model = SerializeAsJson();
+                out << model.dump(4);
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {
+                rc = -1;
+            }
+            return rc;
+        }
+
+        static NormalCore *LoadFromJson(json model) {
+            NormalCore *ret = nullptr;
+
+            try {
+                // extracting elements
+                int numRow = model["numRow"];
+                int numColumn = model["numColumn"];
+                unsigned long timestamp = model["timestamp"];
+
+                std::vector<unsigned long> tempIndex = model["index"];
+
+                json numCurrentJson = model["numCurrent"];
+                json numTotalJson = model["numTotal"];
+
+                // verify number of elements
+                if (tempIndex.size() == numRow) {
+
+                    CountMinSketch *numCurrent = CountMinSketch::LoadFromJson(numCurrentJson);
+                    CountMinSketch *numTotal = CountMinSketch::LoadFromJson(numTotalJson);
+
+                    if (
+                            numCurrent != nullptr
+                            && numTotal != nullptr
+                            ) {
+
+                        ret = new NormalCore(numRow, numColumn, timestamp, tempIndex, numCurrent, numTotal);
+                    }
+
+                    delete numCurrent;
+                    delete numTotal;
+                }
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {}
+
+            return ret;
+
+        }
+
+        static NormalCore *LoadFromFile(const std::string &path) {
+            std::ifstream in(path);
+            NormalCore *ret = nullptr;
+
+            try {
+                json model = json::parse(in);
+                ret = NormalCore::LoadFromJson(model);
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {}
+
+            return ret;
+        }
     };
 }

@@ -23,7 +23,9 @@ PYBIND11_MODULE(MIDAS, m) {
             .def("add_edge", static_cast<double (MIDAS::NormalCore::*)(const std::string &, const std::string &,
                                                                        unsigned long)>(&MIDAS::NormalCore::operator()),
                  py::arg("source"), py::arg("destination"),
-                 py::arg("timestamp"));
+                 py::arg("timestamp"))
+            .def("dump", &MIDAS::NormalCore::DumpToFile, py::arg("path"))
+            .def_static("load", &MIDAS::NormalCore::LoadFromFile, py::return_value_policy::copy, py::arg("path"));
 
     py::class_<MIDAS::RelationalCore>(m, "MIDASR")
             .def(py::init<int, int, double>(), py::arg("num_row"), py::arg("num_col"), py::arg("factor") = 0.5)
