@@ -157,48 +157,48 @@ namespace MIDAS {
             }
             return rc;
         }
-    };
 
-    CountMinSketch *LoadCountMinSketchFromJson(json model) {
-        CountMinSketch *ret = nullptr;
+        static CountMinSketch *LoadFromJson(json model) {
+            CountMinSketch *ret = nullptr;
 
-        try {
-            // extracting elements
-            int r = model["r"];
-            int c = model["c"];
-            int lenData = r * c;
+            try {
+                // extracting elements
+                int r = model["r"];
+                int c = model["c"];
+                int lenData = r * c;
 
-            std::vector<int> tempParam1 = model["param1"];
-            std::vector<int> tempParam2 = model["param2"];
-            std::vector<double> tempData = model["data"];
+                std::vector<int> tempParam1 = model["param1"];
+                std::vector<int> tempParam2 = model["param2"];
+                std::vector<double> tempData = model["data"];
 
-            // verify number of elements
-            if ((tempData.size() == lenData) && (tempParam1.size() == r) && (tempParam2.size() == r)) {
-                ret = new CountMinSketch(r, c, tempParam1, tempParam2, tempData);
+                // verify number of elements
+                if ((tempData.size() == lenData) && (tempParam1.size() == r) && (tempParam2.size() == r)) {
+                    ret = new CountMinSketch(r, c, tempParam1, tempParam2, tempData);
+                }
             }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {}
+
+            return ret;
+
         }
-        catch (std::exception &e) {
-            std::cout << e.what() << std::endl;
+
+        static CountMinSketch *LoadFromFile(const std::string &path) {
+            std::ifstream in(path);
+            CountMinSketch *ret = nullptr;
+
+            try {
+                json model = json::parse(in);
+                ret = CountMinSketch::LoadFromJson(model);
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {}
+
+            return ret;
         }
-        catch (...) {}
-
-        return ret;
-
-    }
-
-    CountMinSketch *LoadCountMinSketchFromFile(const std::string &path) {
-        std::ifstream in(path);
-        CountMinSketch *ret = nullptr;
-
-        try {
-            json model = json::parse(in);
-            ret = LoadCountMinSketchFromJson(model);
-        }
-        catch (std::exception &e) {
-            std::cout << e.what() << std::endl;
-        }
-        catch (...) {}
-
-        return ret;
-    }
+    };
 }

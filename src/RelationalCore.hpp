@@ -161,84 +161,85 @@ namespace MIDAS {
             }
             return rc;
         }
+
+        static RelationalCore *LoadFromJson(json model) {
+            RelationalCore *ret = nullptr;
+
+            try {
+                // extracting elements
+                int numRow = model["numRow"];
+                int numColumn = model["numColumn"];
+                double factor = model["factor"];
+                unsigned long timestamp = model["timestamp"];
+
+                std::vector<unsigned long> tempIndexEdge = model["indexEdge"];
+                std::vector<unsigned long> tempIndexSource = model["indexSource"];
+                std::vector<unsigned long> tempIndexDestination = model["indexDestination"];
+
+                json numCurrentEdgeJson = model["numCurrentEdge"];
+                json numTotalEdgeJson = model["numTotalEdge"];
+                json numCurrentSourceJson = model["numCurrentSource"];
+                json numTotalSourceJson = model["numTotalSource"];
+                json numCurrentDestinationJson = model["numCurrentDestination"];
+                json numTotalDestinationJson = model["numTotalDestination"];
+
+                // verify number of elements
+                if ((tempIndexEdge.size() == numRow) && (tempIndexSource.size() == numRow) &&
+                    (tempIndexDestination.size() == numRow)) {
+
+                    CountMinSketch *numCurrentEdge = CountMinSketch::LoadFromJson(numCurrentEdgeJson);
+                    CountMinSketch *numTotalEdge = CountMinSketch::LoadFromJson(numTotalEdgeJson);
+                    CountMinSketch *numCurrentSource = CountMinSketch::LoadFromJson(numCurrentSourceJson);
+                    CountMinSketch *numTotalSource = CountMinSketch::LoadFromJson(numTotalSourceJson);
+                    CountMinSketch *numCurrentDestination = CountMinSketch::LoadFromJson(numCurrentDestinationJson);
+                    CountMinSketch *numTotalDestination = CountMinSketch::LoadFromJson(numTotalDestinationJson);
+
+                    if (
+                            numCurrentEdge != nullptr
+                            && numTotalEdge != nullptr
+                            && numCurrentSource != nullptr
+                            && numTotalSource != nullptr
+                            && numCurrentDestination != nullptr
+                            && numTotalDestination != nullptr
+                            ) {
+
+                        ret = new RelationalCore(numRow, numColumn, timestamp, factor, tempIndexEdge, tempIndexSource,
+                                                 tempIndexDestination, numCurrentEdge, numTotalEdge, numCurrentSource,
+                                                 numTotalSource, numCurrentDestination, numTotalDestination);
+                    }
+
+                    delete numCurrentEdge;
+                    delete numTotalEdge;
+                    delete numCurrentSource;
+                    delete numTotalSource;
+                    delete numCurrentDestination;
+                    delete numTotalDestination;
+                }
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {}
+
+            return ret;
+
+        }
+
+        static RelationalCore *LoadFromFile(const std::string &path) {
+            std::ifstream in(path);
+            RelationalCore *ret = nullptr;
+
+            try {
+                json model = json::parse(in);
+                ret = RelationalCore::LoadFromJson(model);
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {}
+
+            return ret;
+        }
     };
 
-    RelationalCore *LoadRelationCoreFromJson(json model) {
-        RelationalCore *ret = nullptr;
-
-        try {
-            // extracting elements
-            int numRow = model["numRow"];
-            int numColumn = model["numColumn"];
-            double factor = model["factor"];
-            unsigned long timestamp = model["timestamp"];
-
-            std::vector<unsigned long> tempIndexEdge = model["indexEdge"];
-            std::vector<unsigned long> tempIndexSource = model["indexSource"];
-            std::vector<unsigned long> tempIndexDestination = model["indexDestination"];
-
-            json numCurrentEdgeJson = model["numCurrentEdge"];
-            json numTotalEdgeJson = model["numTotalEdge"];
-            json numCurrentSourceJson = model["numCurrentSource"];
-            json numTotalSourceJson = model["numTotalSource"];
-            json numCurrentDestinationJson = model["numCurrentDestination"];
-            json numTotalDestinationJson = model["numTotalDestination"];
-
-            // verify number of elements
-            if ((tempIndexEdge.size() == numRow) && (tempIndexSource.size() == numRow) &&
-                (tempIndexDestination.size() == numRow)) {
-
-                CountMinSketch *numCurrentEdge = MIDAS::LoadCountMinSketchFromJson(numCurrentEdgeJson);
-                CountMinSketch *numTotalEdge = MIDAS::LoadCountMinSketchFromJson(numTotalEdgeJson);
-                CountMinSketch *numCurrentSource = MIDAS::LoadCountMinSketchFromJson(numCurrentSourceJson);
-                CountMinSketch *numTotalSource = MIDAS::LoadCountMinSketchFromJson(numTotalSourceJson);
-                CountMinSketch *numCurrentDestination = MIDAS::LoadCountMinSketchFromJson(numCurrentDestinationJson);
-                CountMinSketch *numTotalDestination = MIDAS::LoadCountMinSketchFromJson(numTotalDestinationJson);
-
-                if (
-                        numCurrentEdge != nullptr
-                        && numTotalEdge != nullptr
-                        && numCurrentSource != nullptr
-                        && numTotalSource != nullptr
-                        && numCurrentDestination != nullptr
-                        && numTotalDestination != nullptr
-                        ) {
-
-                    ret = new RelationalCore(numRow, numColumn, timestamp, factor, tempIndexEdge, tempIndexSource,
-                                             tempIndexDestination, numCurrentEdge, numTotalEdge, numCurrentSource,
-                                             numTotalSource, numCurrentDestination, numTotalDestination);
-                }
-
-                delete numCurrentEdge;
-                delete numTotalEdge;
-                delete numCurrentSource;
-                delete numTotalSource;
-                delete numCurrentDestination;
-                delete numTotalDestination;
-            }
-        }
-        catch (std::exception &e) {
-            std::cout << e.what() << std::endl;
-        }
-        catch (...) {}
-
-        return ret;
-
-    }
-
-    RelationalCore *LoadRelationalCoreFromFile(const std::string &path) {
-        std::ifstream in(path);
-        RelationalCore *ret = nullptr;
-
-        try {
-            json model = json::parse(in);
-            ret = LoadRelationCoreFromJson(model);
-        }
-        catch (std::exception &e) {
-            std::cout << e.what() << std::endl;
-        }
-        catch (...) {}
-
-        return ret;
-    }
 }
