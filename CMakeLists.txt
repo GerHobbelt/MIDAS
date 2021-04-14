@@ -27,6 +27,8 @@ INCLUDE_DIRECTORIES(
 )
 
 ADD_SUBDIRECTORY(extern/pybind11)
+ADD_SUBDIRECTORY(extern/json)
+
 FIND_PACKAGE(TBB QUIET)
 FIND_PACKAGE(OpenMP QUIET)
 IF (TBB_FOUND)
@@ -52,4 +54,5 @@ ADD_COMPILE_DEFINITIONS(
 )
 
 PYBIND11_ADD_MODULE(MIDAS python/MIDASWrapper.cpp)
+target_link_libraries(MIDAS PRIVATE nlohmann_json::nlohmann_json)
 target_compile_definitions(MIDAS PRIVATE VERSION_INFO=${VERSION_INFO})

@@ -1,3 +1,7 @@
+## v1.3.0 (2021.04.14)
+
+- Add load and dump functions for MIDAS, MIDASR and MIDASF
+
 ## v1.2.0 (2021.03.26)
 
 - Add Python Wrapper

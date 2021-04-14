@@ -17,90 +17,188 @@
 #pragma once
 
 #include <algorithm>
+#include <iterator>
 #include <string>
+#include <iostream>
+#include <fstream>
+#include <nlohmann/json.hpp>
 
+
+using json = nlohmann::json;
 namespace MIDAS {
-struct CountMinSketch {
-	// Fields
-	// --------------------------------------------------------------------------------
+    struct CountMinSketch {
+        // Fields
+        // --------------------------------------------------------------------------------
 
-	const int r, c, m = 104729; // Yes, a magic number, I just pick a random prime
-	const int lenData;
-	int* const param1;
-	int* const param2;
-	double* const data;
-	constexpr static double infinity = std::numeric_limits<double>::infinity();
+        const int r, c, m = 104729; // Yes, a magic number, I just pick a random prime
+        const int lenData;
+        int *const param1;
+        int *const param2;
+        double *const data;
+        constexpr static double infinity = std::numeric_limits<double>::infinity();
 
-	// Methods
-	// --------------------------------------------------------------------------------
+        // Methods
+        // --------------------------------------------------------------------------------
 
-	CountMinSketch() = delete;
-	CountMinSketch& operator=(const CountMinSketch& b) = delete;
+        CountMinSketch() = delete;
 
-	CountMinSketch(int numRow, int numColumn):
-		r(numRow),
-		c(numColumn),
-		lenData(r * c),
-		param1(new int[r]),
-		param2(new int[r]),
-		data(new double[lenData]) {
-		for (int i = 0; i < r; i++) {
-			param1[i] = rand() + 1; // ×0 is not a good idea, see Hash()
-			param2[i] = rand();
-		}
-		std::fill(data, data + lenData, 0);
-	}
+        CountMinSketch &operator=(const CountMinSketch &b) = delete;
 
-	CountMinSketch(const CountMinSketch& b):
-		r(b.r),
-		c(b.c),
-		lenData(b.lenData),
-		param1(new int[r]),
-		param2(new int[r]),
-		data(new double[lenData]) {
-		std::copy(b.param1, b.param1 + r, param1);
-		std::copy(b.param2, b.param2 + r, param2);
-		std::copy(b.data, b.data + lenData, data);
-	}
+        CountMinSketch(int numRow, int numColumn) :
+                r(numRow),
+                c(numColumn),
+                lenData(r * c),
+                param1(new int[r]),
+                param2(new int[r]),
+                data(new double[lenData]) {
+            for (int i = 0; i < r; i++) {
+                param1[i] = rand() + 1; // ×0 is not a good idea, see Hash()
+                param2[i] = rand();
+            }
+            std::fill(data, data + lenData, 0);
+        }
 
-	~CountMinSketch() {
-		delete[] param1;
-		delete[] param2;
-		delete[] data;
-	}
+        CountMinSketch(const CountMinSketch &b) :
+                r(b.r),
+                c(b.c),
+                lenData(b.lenData),
+                param1(new int[r]),
+                param2(new int[r]),
+                data(new double[lenData]) {
+            std::copy(b.param1, b.param1 + r, param1);
+            std::copy(b.param2, b.param2 + r, param2);
+            std::copy(b.data, b.data + lenData, data);
+        }
 
-	void ClearAll(double with = 0) const {
-		std::fill(data, data + lenData, with);
-	}
+        CountMinSketch(int numRow, int numColumn, std::vector<int> param1, std::vector<int> param2,
+                       std::vector<double> data) :
+                r(numRow),
+                c(numColumn),
+                lenData(r * c),
+                param1(new int[r]),
+                param2(new int[r]),
+                data(new double[lenData]) {
+            std::copy(param1.begin(), param1.end(), this->param1);
+            std::copy(param2.begin(), param2.end(), this->param2);
+            std::copy(data.begin(), data.end(), this->data);
+        }
 
-	void MultiplyAll(double by) const {
-		for (int i = 0, I = lenData; i < I; i++) // Vectorization
-			data[i] *= by;
-	}
+        ~CountMinSketch() {
+            delete[] param1;
+            delete[] param2;
+            delete[] data;
+        }
 
-	void Hash(unsigned long* indexOut, unsigned long a, unsigned long b = 0) const {
-		for (int i = 0; i < r; i++) {
-			indexOut[i] = ((a + m * b) * param1[i] + param2[i]) % c;
-			indexOut[i] += i * c + (indexOut[i] < 0 ? c : 0);
-		}
-	}
+        void ClearAll(double with = 0) const {
+            std::fill(data, data + lenData, with);
+        }
 
-	double operator()(const unsigned long* index) const {
-		double least = infinity;
-		for (int i = 0; i < r; i++)
-			least = std::min(least, data[index[i]]);
-		return least;
-	}
+        void MultiplyAll(double by) const {
+            for (int i = 0, I = lenData; i < I; i++) // Vectorization
+                data[i] *= by;
+        }
 
-	double Assign(const unsigned long* index, double with) const {
-		for (int i = 0; i < r; i++)
-			data[index[i]] = with;
-		return with;
-	}
+        void Hash(unsigned long *indexOut, unsigned long a, unsigned long b = 0) const {
+            for (int i = 0; i < r; i++) {
+                indexOut[i] = ((a + m * b) * param1[i] + param2[i]) % c;
+                indexOut[i] += i * c + (indexOut[i] < 0 ? c : 0);
+            }
+        }
 
-	void Add(const unsigned long* index, double by = 1) const {
-		for (int i = 0; i < r; i++)
-			data[index[i]] += by;
-	}
-};
+        double operator()(const unsigned long *index) const {
+            double least = infinity;
+            for (int i = 0; i < r; i++)
+                least = std::min(least, data[index[i]]);
+            return least;
+        }
+
+        double Assign(const unsigned long *index, double with) const {
+            for (int i = 0; i < r; i++)
+                data[index[i]] = with;
+            return with;
+        }
+
+        void Add(const unsigned long *index, double by = 1) const {
+            for (int i = 0; i < r; i++)
+                data[index[i]] += by;
+        }
+
+        json SerializeAsJson() {
+            json model = json();
+            auto copyParam1 = json::array();
+            auto copyParam2 = json::array();
+            auto copyData = json::array();
+
+            std::copy(param1, param1 + r, std::back_inserter(copyParam1));
+            std::copy(param2, param2 + r, std::back_inserter(copyParam2));
+            std::copy(data, data + lenData, std::back_inserter(copyData));
+
+            model["r"] = r;
+            model["c"] = c;
+            model["param1"] = copyParam1;
+            model["param2"] = copyParam2;
+            model["data"] = copyData;
+
+            return model;
+        }
+
+        int DumpToFile(const std::string &path) {
+            int rc = 0;
+            std::ofstream out(path);
+            try {
+                json model = SerializeAsJson();
+                out << model.dump(4);
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {
+                rc = -1;
+            }
+            return rc;
+        }
+
+        static CountMinSketch *LoadFromJson(json model) {
+            CountMinSketch *ret = nullptr;
+
+            try {
+                // extracting elements
+                int r = model["r"];
+                int c = model["c"];
+                int lenData = r * c;
+
+                std::vector<int> tempParam1 = model["param1"];
+                std::vector<int> tempParam2 = model["param2"];
+                std::vector<double> tempData = model["data"];
+
+                // verify number of elements
+                if ((tempData.size() == lenData) && (tempParam1.size() == r) && (tempParam2.size() == r)) {
+                    ret = new CountMinSketch(r, c, tempParam1, tempParam2, tempData);
+                }
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {}
+
+            return ret;
+
+        }
+
+        static CountMinSketch *LoadFromFile(const std::string &path) {
+            std::ifstream in(path);
+            CountMinSketch *ret = nullptr;
+
+            try {
+                json model = json::parse(in);
+                ret = CountMinSketch::LoadFromJson(model);
+            }
+            catch (std::exception &e) {
+                std::cout << e.what() << std::endl;
+            }
+            catch (...) {}
+
+            return ret;
+        }
+    };
 }
